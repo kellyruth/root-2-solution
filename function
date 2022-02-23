@@ -1,0 +1,20 @@
+hit = []
+hit_bin = []  #to identify in which bin/bins the hit came from
+bin_IE = []  #2d array - for testing - 1st snr for each channel, 2nd snr each pair, 3rd snr each quadruple, etc
+segmentSize  = 1
+while segmentSize <= ChanIndx:
+    bin_segment = []   #to store snr for each segement
+    for segmentStart in range(0, (ChanIndx - segmentSize) + 1, 1): #from 0 - (no.chans - segmentsize + 1) in steps of 1
+        segment_snr = 0
+        for segmentIndex in range(segmentStart, segmentStart + segmentSize, 1): # going through channels in the segment, going up in steps of 1
+            segment_snr = segment_snr + snr[segmentIndex]
+        bin_segment.append(segment_snr)
+        if segment_snr > (snr_thresh)*((2**(1/2))**(segmentSize-1)): 
+            hit.append('snr:'+str(segment_snr))
+            hit_bin.append("segment size:"+str(segmentSize)+" segment start:"+str(segmentStart)) 
+    bin_IE.append(bin_segment)
+    segmentSize = segmentSize * 2
+
+print(bin_IE)
+print(hit)
+print(hit_bin)
