@@ -1,0 +1,97 @@
+import random
+
+snr_thresh = 10 #Set the threshold
+#snr = [6,2,9,4,5,8,7,3,4,7,2,8,11,14,7,3] #Set up a sample signal array
+ChanTotal = 64 #The total number of panels in the array
+SignalTotal = 1000 #Total no. random signals tested
+NoiseTotal = 1000 #Total no. noise arrays tested
+MaxSignalSize = 5000 #Max size of test signal - will generate ranom sig up to this
+MaxNoiseSize = 50 #As above but noise
+
+noiseValuesCount = []
+for noiseValuesCountIdx in range(MaxNoiseSize):
+    noiseValuesCount.append(0)
+
+signalRangeSize = 1
+while signalRangeSize <= ChanTotal: #Test signals spread over single frequencies to all ranges up to entire array
+
+    hitPercentages = []
+    signalValues = []
+
+    for testSignalIndx in range(SignalTotal):
+        signalStartLocation = random.randint(0,(ChanTotal-signalRangeSize))
+        signalValue = random.randint(1,MaxSignalSize)
+        
+        
+        hitCount = 0
+        
+        for testNoiseIndx in range(NoiseTotal):
+            
+            noiseArray = []
+            for noiseIndx in range(ChanTotal):
+                noiseVal = random.randint(1,MaxNoiseSize)
+                noiseArray.append(noiseVal)
+                noiseValuesCount[noiseVal - 1] += 1
+                
+            signalArray = []
+            for signalIndx in range(ChanTotal):
+                if signalIndx >= signalStartLocation and signalIndx < (signalStartLocation + signalRangeSize):
+                    signalArray.append(signalValue/signalRangeSize)
+                else:
+                    signalArray.append(noiseArray[signalIndx])
+                    
+            snr = []
+            for snrIndx in range(ChanTotal):
+                snr.append(signalArray[snrIndx]/noiseArray[snrIndx])
+            
+            hit = []
+            hit_bin = []  #to identify in which bin/bins the hit came from
+            bin_IE = []  #2d array - for testing - 1st snr for each channel, 2nd snr each pair, 3rd snr each quadruple, etc
+            segmentSize  = 1
+            isHit = False
+            while segmentSize <= ChanTotal:
+                bin_segment = []   #to store snr for each segement
+                for segmentStart in range(0, (ChanTotal - segmentSize) + 1, 1): #from 0 - (no.chans - segmentsize + 1) in steps of 1
+                    segment_snr = 0
+                    for segmentIndex in range(segmentStart, segmentStart + segmentSize, 1): # going through channels in the segment, going up in steps of 1
+                        segment_snr = segment_snr + snr[segmentIndex]
+                    bin_segment.append(segment_snr)
+                    if segment_snr > (snr_thresh)*((2**(1/2))**(segmentSize-1)): ###???? - root(2) bit but is it right??
+                        hit.append('snr:'+str(segment_snr))
+                        hit_bin.append("segment size:"+str(segmentSize)+" segment start:"+str(segmentStart)) 
+                        isHit = True
+                bin_IE.append(bin_segment)
+                segmentSize = segmentSize * 2
+            if isHit:
+                hitCount += 1
+                
+        hitPercentages.append(hitCount/NoiseTotal * 100)
+        signalValues.append(signalValue)
+    
+    # hitpercentages is the hit rates over NoiseTotal test noise arrays for each signal
+    print('Signal',  signalValues)
+    
+    print('%', hitPercentages)
+    
+    signalRangeSize = signalRangeSize * 2  
+    
+    import matplotlib.pyplot as plt
+
+plt.plot(signalValues, hitPercentages, 'o')
+plt.title("Error")
+plt.xlabel("Signal")
+plt.ylabel("Percentage hit")
+
+plt.show()
+
+x = []
+for i in range(1, MaxNoiseSize+1):
+    x.append(i)
+
+plt.plot(x, noiseValuesCount)
+
+plt.title('Noise')
+plt.xlabel('Noise Value')
+plt.ylabel('Counts')
+
+plt.show()
